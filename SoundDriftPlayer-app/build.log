@@ -1,0 +1,18 @@
+
+> sounddrift@1.0.0 build
+> electron-builder
+
+  • electron-builder  version=25.1.8 os=24.0.0
+  • loaded configuration  file=package.json ("build" field)
+  • executing @electron/rebuild  electronVersion=33.0.2 arch=arm64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=arm64
+  • preparing       moduleName=speaker arch=arm64
+  • finished        moduleName=speaker arch=arm64
+  • completed installing native dependencies
+  • packaging       platform=darwin arch=arm64 electron=33.0.2 appOutDir=dist/mac-arm64
+  • skipped macOS application code signing  reason=cannot find valid "Developer ID Application" identity or custom non-Apple code signing certificate, it could cause some undefined behaviour, e.g. macOS localized description not visible, see https://electron.build/code-signing allIdentities=     0 identities found
+                                                Valid identities only
+     0 valid identities found
+  • building        target=DMG arch=arm64 file=dist/SoundDrift Client-1.0.0-arm64.dmg
+  • Detected arm64 process, HFS+ is unavailable. Creating dmg with APFS - supports Mac OSX 10.12+
+  • building block map  blockMapFile=dist/SoundDrift Client-1.0.0-arm64.dmg.blockmap

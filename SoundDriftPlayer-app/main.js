@@ -3,6 +3,10 @@ const net = require("net");
 const path = require("path");
 const speaker = require("speaker");
 
+const nativeImage = require("electron").nativeImage;
+const image = nativeImage.createFromPath("build/icondoc.png");
+app.dock.setIcon(image);
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 300,
@@ -13,12 +17,7 @@ function createWindow() {
     },
     frame: true,
     titleBarStyle: "hidden-inset",
-    icon:
-      process.platform === "win32"
-        ? path.join(__dirname, "assets/icons/win/icon.ico")
-        : process.platform === "darwin"
-        ? path.join(__dirname, "assets/icons/mac/icon.icns")
-        : path.join(__dirname, "assets/icons/png/1024x1024.png"),
+    icon: path.join(__dirname, "build/icon.icns"),
   });
 
   win.loadFile("index.html");
