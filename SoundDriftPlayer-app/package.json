@@ -1,0 +1,20 @@
+{
+  "name": "sounddrift",
+  "version": "1.0.0",
+  "description": "client for sounddrift",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "make-icons": "electron-icon-maker --input=./assets/icon.png --output=./assets",
+    "start": "electron ."
+  },
+  "author": "heymeowcat",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^33.0.2",
+    "electron-icon-maker": "^0.0.5"
+  },
+  "dependencies": {
+    "speaker": "^0.5.5"
+  }
+}
