@@ -6,20 +6,19 @@ const speaker = require("speaker");
 function createWindow() {
   const win = new BrowserWindow({
     width: 300,
-    height: 200,
+    height: 280,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
     },
-    resizable: false,
-    frame: false,
-    transparent: true,
+    frame: true,
+    titleBarStyle: "hidden-inset",
     icon:
       process.platform === "win32"
-        ? path.join(__dirname, "assets/icon.ico")
-        : path.platform === "darwin"
-        ? path.join(__dirname, "assets/icon.icns")
-        : path.join(__dirname, "assets/icon.png"),
+        ? path.join(__dirname, "assets/icons/win/icon.ico")
+        : process.platform === "darwin"
+        ? path.join(__dirname, "assets/icons/mac/icon.icns")
+        : path.join(__dirname, "assets/icons/png/1024x1024.png"),
   });
 
   win.loadFile("index.html");

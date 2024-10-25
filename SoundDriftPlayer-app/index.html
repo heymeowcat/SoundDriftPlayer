@@ -8,8 +8,7 @@
         font-family: "Segoe UI", Roboto, system-ui, sans-serif;
         margin: 0;
         padding: 20px;
-        border-radius: 12px;
-        -webkit-app-region: drag;
+        user-select: none;
       }
 
       .container {
@@ -33,27 +32,35 @@
         background-color: rgba(255, 255, 255, 0.8);
         font-size: 14px;
         outline: none;
-        -webkit-app-region: no-drag;
       }
 
-      button {
+      .button {
         padding: 8px 24px;
         border: none;
         border-radius: 20px;
-        background-color: #006492;
-        color: white;
         font-size: 14px;
         cursor: pointer;
         transition: background-color 0.2s;
-        -webkit-app-region: no-drag;
+        width: 100%;
       }
 
-      button:hover {
+      .connect-button {
+        background-color: #006492;
+        color: white;
+      }
+
+      .connect-button:hover {
         background-color: #004b6f;
       }
 
-      button:active {
-        background-color: #003355;
+      .disconnect-button {
+        background-color: #b3261e;
+        color: white;
+        display: none;
+      }
+
+      .disconnect-button:hover {
+        background-color: #8c1d17;
       }
 
       #status {
@@ -63,53 +70,80 @@
         min-height: 20px;
       }
 
-      .close-button {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        background: none;
-        border: none;
-        color: #1a1c1e;
-        font-size: 18px;
-        cursor: pointer;
-        padding: 4px 8px;
-        -webkit-app-region: no-drag;
+      .hidden {
+        display: none;
+      }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
       }
     </style>
   </head>
   <body>
-    <button class="close-button" onclick="closeApp()">×</button>
     <div class="container">
       <h1 class="title">SoundDrift Client</h1>
       <input
         type="text"
         id="serverIP"
+        value="192.168.1.1"
         placeholder="Enter Android phone's IP address"
       />
-      <button onclick="connect()">Connect</button>
-      <button onclick="disconnect()">Disconnect</button>
+      <button id="connectBtn" class="button connect-button" onclick="connect()">
+        Connect
+      </button>
+      <button
+        id="disconnectBtn"
+        class="button disconnect-button"
+        onclick="disconnect()"
+      >
+        Disconnect
+      </button>
       <div id="status"></div>
     </div>
 
     <script>
       const { ipcRenderer } = require("electron");
 
+      // Load saved IP from localStorage
+      document.getElementById("serverIP").value =
+        localStorage.getItem("lastIP") || "192.168.1.1";
+
       function connect() {
         const serverIP = document.getElementById("serverIP").value;
+        localStorage.setItem("lastIP", serverIP);
         ipcRenderer.send("connect-to-server", serverIP);
+        updateButtonState(true);
       }
 
       function disconnect() {
         ipcRenderer.send("disconnect");
+        updateButtonState(false);
       }
 
-      function closeApp() {
-        window.close();
+      function updateButtonState(isConnected) {
+        const connectBtn = document.getElementById("connectBtn");
+        const disconnectBtn = document.getElementById("disconnectBtn");
+
+        if (isConnected) {
+          connectBtn.style.display = "none";
+          disconnectBtn.style.display = "block";
+        } else {
+          connectBtn.style.display = "block";
+          disconnectBtn.style.display = "none";
+        }
       }
 
       ipcRenderer.on("connection-status", (event, status) => {
         document.getElementById("status").textContent = status;
+        if (status === "Connected") {
+          updateButtonState(true);
+        } else if (status.includes("Error") || status === "Disconnected") {
+          updateButtonState(false);
+        }
       });
+
+      updateButtonState(false);
     </script>
   </body>
 </html>
