@@ -6,33 +6,26 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "make-icons": "electron-icon-maker --input=./assets/icon.png --output=./assets",
-    "build": "electron-builder",
-    "start": "electron ."
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "author": "heymeowcat",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^33.0.2",
-    "electron-builder": "^25.1.8",
+    "@electron-forge/cli": "^7.5.0",
+    "@electron-forge/maker-deb": "^7.5.0",
+    "@electron-forge/maker-rpm": "^7.5.0",
+    "@electron-forge/maker-squirrel": "^7.5.0",
+    "@electron-forge/maker-zip": "^7.5.0",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.5.0",
+    "@electron-forge/plugin-fuses": "^7.5.0",
+    "@electron/fuses": "^1.8.0",
+    "electron": "33.0.2",
     "electron-icon-maker": "^0.0.5"
   },
-  "build": {
-    "appId": "com.heymeowcat.sounddriftclient",
-    "productName": "SoundDrift Client",
-    "icon": "build/icon.icns",
-    "mac": {
-      "category": "public.app-category.utilities",
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "arm64"
-          ]
-        }
-      ]
-    }
-  },
   "dependencies": {
+    "electron-squirrel-startup": "^1.0.1",
     "speaker": "^0.5.5"
   }
 }
