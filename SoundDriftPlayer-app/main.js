@@ -1,5 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
-const net = require("net");
+const dgram = require("dgram");
 const path = require("path");
 const speaker = require("speaker");
 
@@ -33,31 +33,40 @@ const audioOutput = new speaker({
 let client = null;
 
 ipcMain.on("connect-to-server", (event, serverIP) => {
-  client = new net.Socket();
+  client = dgram.createSocket("udp4");
 
-  client.connect(12345, serverIP, () => {
-    console.log("Connected to Android server");
-    event.reply("connection-status", "Connected");
+  client.bind(55555, () => {
+    const address = client.address();
+    console.log(`Client listening on ${address.address}:${address.port}`);
+
+    const firstPacket = Buffer.alloc(1);
+    client.send(firstPacket, 55556, serverIP, (err) => {
+      if (err) {
+        console.error("Error sending first packet:", err);
+        event.reply("connection-status", "Error: " + err.message);
+      } else {
+        console.log("Initial packet sent to server.");
+        event.reply("connection-status", "Connected");
+      }
+    });
   });
 
-  client.on("data", (data) => {
-    audioOutput.write(data);
+  client.on("message", (msg, rinfo) => {
+    console.log(
+      `Received packet from ${rinfo.address}:${rinfo.port}, size: ${msg.length} bytes`
+    );
+    audioOutput.write(msg);
   });
 
   client.on("error", (err) => {
     console.error("Connection error:", err);
     event.reply("connection-status", "Error: " + err.message);
   });
-
-  client.on("close", () => {
-    console.log("Connection closed");
-    event.reply("connection-status", "Disconnected");
-  });
 });
 
 ipcMain.on("disconnect", () => {
   if (client) {
-    client.destroy();
+    client.close();
     client = null;
   }
 });
