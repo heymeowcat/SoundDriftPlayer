@@ -3,7 +3,7 @@
 
 A minimalist desktop client for receiving SoundDrift app's audio streams from Android devices. Built with Electron.
 
-<img width="304" alt="sounddriftclient" src="https://github.com/user-attachments/assets/d7fa311e-ad03-409c-b6e0-c015f111862f">
+<img width="412" alt="Screenshot 2024-10-27 at 4 05 47 PM" src="https://github.com/user-attachments/assets/47fab888-cc57-4f1c-8556-766bfe79435e">
 
 
 ## Features
@@ -41,7 +41,7 @@ Before installing, make sure you have the following installed:
 ## Building from Source
 
 To create a distributable package:
-`npm run build`
+`npm run make`
 
 This will create platform-specific packages in the  `dist`  folder.
 
@@ -55,5 +55,5 @@ This will create platform-specific packages in the  `dist`  folder.
 ## Development
 
 -   `npm start`  - Start the app in development mode
--   `npm run build`  - Build the app for distribution
+-   `npm run make`  - Build the app for distribution
 -   `npm run make-icons`  - Generate app icons (requires source icon.png in assets folder)
