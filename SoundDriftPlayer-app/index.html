@@ -78,6 +78,39 @@
         opacity: 0.6;
         cursor: not-allowed;
       }
+      metrics-container {
+        background-color: rgba(255, 255, 255, 0.8);
+        border-radius: 12px;
+        padding: 12px;
+        margin-top: 8px;
+      }
+
+      .metric-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 13px;
+      }
+
+      .metric-label {
+        color: #444;
+      }
+
+      .metric-value {
+        font-weight: 500;
+        color: #006492;
+      }
+
+      .volume-control {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .volume-slider {
+        flex: 1;
+      }
     </style>
   </head>
   <body>
@@ -100,6 +133,25 @@
         Disconnect
       </button>
       <div id="status"></div>
+
+      <div id="metricsContainer" class="metrics-container hidden">
+        <div class="metric-row">
+          <span class="metric-label">Device Name:</span>
+          <span class="metric-value" id="deviceName">-</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Average Latency:</span>
+          <span class="metric-value" id="avgLatency">-</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Max Latency:</span>
+          <span class="metric-value" id="maxLatency">-</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-label">Buffer Size:</span>
+          <span class="metric-value" id="bufferMs">-</span>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -108,6 +160,12 @@
       // Load saved IP from localStorage
       document.getElementById("serverIP").value =
         localStorage.getItem("lastIP") || "192.168.1.1";
+
+      const connectBtn = document.getElementById("connectBtn");
+
+      ipcRenderer.on("update-connect-button", (event, isDisabled) => {
+        connectBtn.disabled = isDisabled;
+      });
 
       function connect() {
         const serverIP = document.getElementById("serverIP").value;
@@ -124,21 +182,38 @@
       function updateButtonState(isConnected) {
         const connectBtn = document.getElementById("connectBtn");
         const disconnectBtn = document.getElementById("disconnectBtn");
+        const metricsContainer = document.getElementById("metricsContainer");
 
         if (isConnected) {
           connectBtn.style.display = "none";
           disconnectBtn.style.display = "block";
+          metricsContainer.classList.remove("hidden");
         } else {
           connectBtn.style.display = "block";
           disconnectBtn.style.display = "none";
+          metricsContainer.classList.add("hidden");
         }
       }
+
+      ipcRenderer.on("stream-metadata", (event, metadata) => {
+        console.log("Received metadata:", metadata);
+
+        const deviceNameText = document.getElementById("deviceName");
+        const avgLatencyText = document.getElementById("avgLatency");
+        const maxLatencyText = document.getElementById("maxLatency");
+        const bufferMsText = document.getElementById("bufferMs");
+
+        deviceNameText.textContent = metadata.deviceName;
+        avgLatencyText.textContent = `${metadata.averageLatency}ms`;
+        maxLatencyText.textContent = `${metadata.maxLatency}ms`;
+        bufferMsText.textContent = `${metadata.bufferMs}ms`;
+      });
 
       ipcRenderer.on("connection-status", (event, status) => {
         document.getElementById("status").textContent = status;
         if (status === "Connected") {
           updateButtonState(true);
-        } else if (status.includes("Error") || status === "Disconnected") {
+        } else {
           updateButtonState(false);
         }
       });
