@@ -16,6 +16,8 @@ let currentVolume = 1.0;
 let isTCPConnected = false;
 let isUDPConnected = false;
 
+const MAX_QUEUE_LENGTH = 50; // Maximum packets to keep in queue
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 300,
@@ -42,23 +44,19 @@ function setupAudioOutput() {
     device: "default",
     endianness: "LE",
   });
+
+  audioOutput.on("error", (err) => {
+    console.error("Audio output error:", err);
+  });
 }
 
 function applyVolume(buffer, volume) {
   const newBuffer = Buffer.alloc(buffer.length);
-
-  for (let i = 0; i < buffer.length; i += 4) {
-    let leftSample = buffer.readInt16LE(i);
-    let adjustedLeft = Math.round(leftSample * volume);
-    adjustedLeft = Math.max(-32768, Math.min(32767, adjustedLeft));
-    newBuffer.writeInt16LE(adjustedLeft, i);
-
-    let rightSample = buffer.readInt16LE(i + 2);
-    let adjustedRight = Math.round(rightSample * volume);
-    adjustedRight = Math.max(-32768, Math.min(32767, adjustedRight));
-    newBuffer.writeInt16LE(adjustedRight, i + 2);
+  for (let i = 0; i < buffer.length; i += 2) {
+    let sample = buffer.readInt16LE(i);
+    let adjusted = Math.round(sample * volume);
+    newBuffer.writeInt16LE(Math.max(-32768, Math.min(32767, adjusted)), i);
   }
-
   return newBuffer;
 }
 
@@ -80,12 +78,10 @@ function connectTCP(serverIP) {
 
   tcpClient.on("data", (dataChunk) => {
     dataBuffer += dataChunk.toString();
-
     let newlineIndex;
     while ((newlineIndex = dataBuffer.indexOf("\n")) !== -1) {
       const message = dataBuffer.substring(0, newlineIndex);
       dataBuffer = dataBuffer.substring(newlineIndex + 1);
-
       try {
         const metadata = JSON.parse(message);
         console.log("Received metadata:", metadata);
@@ -104,6 +100,7 @@ function connectTCP(serverIP) {
 
 function connectUDP(serverIP) {
   udpClient = dgram.createSocket("udp4");
+  const audioQueue = []; // Queue to manage incoming audio packets
 
   udpClient.bind(55555, () => {
     const firstPacket = Buffer.alloc(1);
@@ -120,16 +117,26 @@ function connectUDP(serverIP) {
   });
 
   udpClient.on("message", (msg) => {
-    if (audioOutput) {
-      const adjustedBuffer = applyVolume(msg, currentVolume);
-      audioOutput.write(adjustedBuffer);
+    if (audioQueue.length >= MAX_QUEUE_LENGTH) {
+      audioQueue.shift(); // Remove oldest packet to prevent lag
     }
+    audioQueue.push(applyVolume(msg, currentVolume));
+    playAudioFromQueue(audioQueue);
   });
 
   udpClient.on("error", (err) => {
     console.error("UDP Connection error:", err);
     handleDisconnect();
   });
+}
+
+function playAudioFromQueue(queue) {
+  if (audioOutput && queue.length > 0) {
+    const bufferToPlay = queue.shift();
+    if (bufferToPlay) {
+      audioOutput.write(bufferToPlay);
+    }
+  }
 }
 
 function checkConnectionStatus() {
@@ -182,6 +189,16 @@ ipcMain.on("connect-to-server", (event, serverIP) => {
 ipcMain.on("disconnect", () => {
   handleDisconnect();
 });
+
+setInterval(() => {
+  console.log("Reconnecting to prevent latency buildup...");
+  handleDisconnect();
+  if (mainWindow) {
+    setupAudioOutput();
+    connectTCP(serverIP);
+    connectUDP(serverIP);
+  }
+}, 1800000);
 
 app.whenReady().then(createWindow);
 
