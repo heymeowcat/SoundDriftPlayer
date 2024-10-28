@@ -17,6 +17,8 @@ let isTCPConnected = false;
 let isUDPConnected = false;
 
 const MAX_QUEUE_LENGTH = 50; // Maximum packets to keep in queue
+let silenceThreshold = 5;
+let silentPacketCount = 0;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -103,16 +105,36 @@ function connectUDP(serverIP) {
   const audioQueue = []; // Queue to manage incoming audio packets
 
   udpClient.bind(55555, () => {
-    const firstPacket = Buffer.alloc(1);
-    udpClient.send(firstPacket, 55556, serverIP, (err) => {
+    console.log("Client bound to port 55555");
+
+    const initialPacket = Buffer.from("SoundDriftConnectionRequest");
+    udpClient.send(initialPacket, 55556, serverIP, (err) => {
       if (err) {
         console.error("Error sending first packet:", err);
+
         handleDisconnect();
       } else {
         console.log("Initial packet sent to server.");
-        isUDPConnected = true;
-        checkConnectionStatus();
+
+        const deviceInfo = {
+          deviceName: require("os").hostname(),
+        };
+
+        const deviceInfoPacket = Buffer.from(JSON.stringify(deviceInfo));
+        udpClient.send(deviceInfoPacket, 55556, serverIP, (err) => {
+          if (err) {
+            console.error("Error sending device info JSON packet:", err);
+          } else {
+            console.log(" device info JSON packet sent to server.");
+            isUDPConnected = true;
+            checkConnectionStatus();
+          }
+        });
       }
+    });
+    udpClient.on("close", () => {
+      console.log("UDP socket closed");
+      handleDisconnect();
     });
   });
 
@@ -130,11 +152,30 @@ function connectUDP(serverIP) {
   });
 }
 
+function isSilent(buffer) {
+  // Check if packet is silent
+  for (let i = 0; i < buffer.length; i += 2) {
+    if (buffer.readInt16LE(i) !== 0) return false;
+  }
+  return true;
+}
+
 function playAudioFromQueue(queue) {
   if (audioOutput && queue.length > 0) {
     const bufferToPlay = queue.shift();
+
     if (bufferToPlay) {
-      audioOutput.write(bufferToPlay);
+      if (isSilent(bufferToPlay)) {
+        silentPacketCount++;
+        if (silentPacketCount >= silenceThreshold) {
+          queue.length = 0; // Clear queue
+          silentPacketCount = 0;
+          console.log("Silence detected, clearing queue...");
+        }
+      } else {
+        silentPacketCount = 0;
+        audioOutput.write(bufferToPlay);
+      }
     }
   }
 }
@@ -163,8 +204,23 @@ function handleDisconnect() {
   }
 
   if (udpClient) {
-    udpClient.close();
-    udpClient = null;
+    const disconnectPacket = Buffer.from("SoundDriftDisconnect");
+    try {
+      udpClient.send(disconnectPacket, 55556, serverIP, (err) => {
+        if (err) {
+          console.error("Error sending disconnect packet:", err);
+        } else {
+          console.log("Disconnect packet sent to server.");
+        }
+      });
+
+      setTimeout(() => {
+        udpClient.close();
+        udpClient = null;
+      }, 100);
+    } catch (e) {
+      console.error("Error during disconnect:", e);
+    }
   }
 
   if (audioOutput) {
