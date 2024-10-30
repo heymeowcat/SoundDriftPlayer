@@ -207,18 +207,20 @@ function handleDisconnect() {
   if (udpClient) {
     const disconnectPacket = Buffer.from("SoundDriftDisconnect");
     try {
-      udpClient.send(disconnectPacket, 55556, serverIP, (err) => {
-        if (err) {
-          console.error("Error sending disconnect packet:", err);
-        } else {
-          console.log("Disconnect packet sent to server.");
-        }
-      });
+      if (serverIP) {
+        udpClient.send(disconnectPacket, 55556, serverIP, (err) => {
+          if (err) {
+            console.error("Error sending disconnect packet:", err);
+          } else {
+            console.log("Disconnect packet sent to server.");
+          }
+        });
+      }
 
-      setTimeout(() => {
-        udpClient.close();
+      udpClient.close(() => {
         udpClient = null;
-      }, 100);
+        console.log("UDP socket closed");
+      });
     } catch (e) {
       console.error("Error during disconnect:", e);
     }
@@ -251,7 +253,7 @@ ipcMain.on("disconnect", () => {
 setInterval(() => {
   console.log("Reconnecting to prevent latency buildup...");
   handleDisconnect();
-  if (mainWindow) {
+  if (mainWindow && serverIP) {
     setupAudioOutput();
     connectTCP(serverIP);
     connectUDP(serverIP);
