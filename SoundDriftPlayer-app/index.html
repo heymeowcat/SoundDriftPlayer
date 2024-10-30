@@ -206,7 +206,7 @@
         deviceNameText.textContent = metadata.deviceName;
         avgLatencyText.textContent = `${metadata.averageLatency}ms`;
         maxLatencyText.textContent = `${metadata.maxLatency}ms`;
-        bufferMsText.textContent = `${metadata.bufferMs}ms`;
+        bufferMsText.textContent = `${metadata.bufferMs}`;
       });
 
       ipcRenderer.on("connection-status", (event, status) => {

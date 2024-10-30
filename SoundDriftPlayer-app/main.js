@@ -5,7 +5,7 @@ const path = require("path");
 const speaker = require("speaker");
 const nativeImage = require("electron").nativeImage;
 
-const image = nativeImage.createFromPath("build/icondoc.png");
+const image = nativeImage.createFromPath("build/icon.png");
 app.dock.setIcon(image);
 
 let mainWindow = null;
