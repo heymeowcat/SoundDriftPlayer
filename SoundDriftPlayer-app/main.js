@@ -15,6 +15,7 @@ let audioOutput = null;
 let currentVolume = 1.0;
 let isTCPConnected = false;
 let isUDPConnected = false;
+let serverIP = null;
 
 const MAX_QUEUE_LENGTH = 50; // Maximum packets to keep in queue
 let silenceThreshold = 5;
@@ -231,7 +232,8 @@ function handleDisconnect() {
   checkConnectionStatus();
 }
 
-ipcMain.on("connect-to-server", (event, serverIP) => {
+pcMain.on("connect-to-server", (event, serverIPFromRenderer) => {
+  serverIP = serverIPFromRenderer;
   if (!isTCPConnected && !isUDPConnected) {
     setupAudioOutput();
     connectTCP(serverIP);
