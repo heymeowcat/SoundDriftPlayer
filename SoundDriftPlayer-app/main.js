@@ -232,7 +232,7 @@ function handleDisconnect() {
   checkConnectionStatus();
 }
 
-pcMain.on("connect-to-server", (event, serverIPFromRenderer) => {
+ipcMain.on("connect-to-server", (event, serverIPFromRenderer) => {
   serverIP = serverIPFromRenderer;
   if (!isTCPConnected && !isUDPConnected) {
     setupAudioOutput();
