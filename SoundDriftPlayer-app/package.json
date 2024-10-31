@@ -8,7 +8,8 @@
     "make-icons": "electron-icon-maker --input=./assets/icon.png --output=./assets",
     "start": "electron-forge start",
     "package": "electron-forge package",
-    "make": "electron-forge make"
+    "make": "electron-forge make",
+    "generate-icons": "electron-icons -i Content.png -o images"
   },
   "author": "heymeowcat",
   "license": "ISC",
@@ -22,7 +23,8 @@
     "@electron-forge/plugin-fuses": "^7.5.0",
     "@electron/fuses": "^1.8.0",
     "electron": "33.0.2",
-    "electron-icon-maker": "^0.0.5"
+    "electron-icon-maker": "^0.0.5",
+    "electron-icons": "^1.0.2"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",

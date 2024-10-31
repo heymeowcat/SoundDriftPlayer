@@ -250,15 +250,15 @@ ipcMain.on("disconnect", () => {
   handleDisconnect();
 });
 
-setInterval(() => {
-  console.log("Reconnecting to prevent latency buildup...");
-  handleDisconnect();
-  if (mainWindow && serverIP) {
-    setupAudioOutput();
-    connectTCP(serverIP);
-    connectUDP(serverIP);
-  }
-}, 1800000);
+// setInterval(() => {
+//   console.log("Reconnecting to prevent latency buildup...");
+//   handleDisconnect();
+//   if (mainWindow && serverIP) {
+//     setupAudioOutput();
+//     connectTCP(serverIP);
+//     connectUDP(serverIP);
+//   }
+// }, 1800000);
 
 app.whenReady().then(createWindow);
 
