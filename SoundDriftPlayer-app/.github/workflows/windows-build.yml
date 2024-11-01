@@ -1,0 +1,32 @@
+name: Build Windows Electron App
+
+on:
+  workflow_dispatch:  
+
+jobs:
+  build-windows:
+    name: Windows Build
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Build Electron App
+      run: npm run make
+
+    - name: Upload Windows Build Artifacts
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-builds
+        path: |
+          out/make/squirrel.windows/x64/*.exe
+          out/make/zip/win32/*.zip
