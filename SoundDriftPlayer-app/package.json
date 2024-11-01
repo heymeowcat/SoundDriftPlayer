@@ -5,18 +5,19 @@
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "make-icons": "electron-icon-maker --input=./assets/icon.png --output=./assets",
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
-    "generate-icons": "electron-icons -i Content.png -o images"
+    "generate-icons": "electron-icons -i Content.png -o build"
   },
   "author": "heymeowcat",
   "license": "ISC",
   "config": {
     "forge": {
       "packagerConfig": {
-        "asar": true
+        "name": "SoundDrift",
+        "asar": true,
+        "icon": "build/icon"
       },
       "directories": {
         "output": "dist"
@@ -56,9 +57,8 @@
     "@electron-forge/plugin-auto-unpack-natives": "^7.5.0",
     "@electron-forge/plugin-fuses": "^7.5.0",
     "@electron/fuses": "^1.8.0",
-    "electron": "33.0.2",
-    "electron-icon-maker": "^0.0.5",
-    "electron-icons": "^1.0.2"
+    "electron": "^33.0.2",
+    "electron-icons": "^1.0.6"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
