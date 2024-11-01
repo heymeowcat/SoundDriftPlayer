@@ -20,8 +20,6 @@ Before installing, make sure you have the following installed:
 
 ### Platform-specific Requirements
 
-#### Windows
-`npm install --global --production windows-build-tools`
 #### macOS
 `xcode-select --install`
 #### Linux (Ubuntu/Debian)
@@ -43,7 +41,7 @@ Before installing, make sure you have the following installed:
 To create a distributable package:
 `npm run make`
 
-This will create platform-specific packages in the  `dist`  folder.
+This will create platform-specific packages in the  `out`  folder.
 
 ## Usage
 
@@ -56,4 +54,4 @@ This will create platform-specific packages in the  `dist`  folder.
 
 -   `npm start`  - Start the app in development mode
 -   `npm run make`  - Build the app for distribution
--   `npm run make-icons`  - Generate app icons (requires source icon.png in assets folder)
+-   `npm run generate-icons`  - Generate app icons
