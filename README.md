@@ -6,6 +6,11 @@ A minimalist desktop client for receiving SoundDrift app's audio streams from An
 <img width="412" alt="Screenshot 2024-10-27 at 4 05 47 PM" src="https://github.com/user-attachments/assets/47fab888-cc57-4f1c-8556-766bfe79435e">
 
 
+## Usage
+Download the 
+[Latest Release](https://github.com/heymeowcat/SoundDriftPlayer/releases/latest)
+
+
 ## Features
 
 - Compact, Retro UI design
