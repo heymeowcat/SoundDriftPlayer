@@ -6,7 +6,12 @@ const speaker = require("speaker");
 const nativeImage = require("electron").nativeImage;
 
 const image = nativeImage.createFromPath("build/icon.png");
-app.dock.setIcon(image);
+if (process.platform === "darwin") {
+  app.dock.setIcon(image);
+} else if (process.platform === "linux") {
+  const linuxIconPath = path.join(__dirname, "build/icon.png");
+  mainWindow.setIcon(linuxIconPath);
+}
 
 let mainWindow = null;
 let udpClient = null;
@@ -22,6 +27,13 @@ let silenceThreshold = 5;
 let silentPacketCount = 0;
 
 function createWindow() {
+  const iconPath =
+    process.platform === "win32"
+      ? path.join(__dirname, "build/icon.ico")
+      : process.platform === "darwin"
+      ? path.join(__dirname, "build/icon.icns")
+      : path.join(__dirname, "build/icon.png");
+
   mainWindow = new BrowserWindow({
     width: 300,
     height: 380,
@@ -30,8 +42,8 @@ function createWindow() {
       contextIsolation: false,
     },
     frame: true,
-    titleBarStyle: "hidden-inset",
-    icon: path.join(__dirname, "build/icon.icns"),
+    titleBarStyle: process.platform === "darwin" ? "hidden-inset" : "default",
+    icon: iconPath,
   });
 
   mainWindow.loadFile("index.html");
