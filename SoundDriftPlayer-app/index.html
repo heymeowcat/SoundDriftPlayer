@@ -111,6 +111,53 @@
       .volume-slider {
         flex: 1;
       }
+
+      .device-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .device-card {
+        background-color: rgba(255, 255, 255, 0.6);
+        padding: 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .device-card:hover {
+        background-color: rgba(255, 255, 255, 0.9);
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      }
+
+      .device-info {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .device-name {
+        font-weight: 500;
+        font-size: 14px;
+        color: #1a1c1e;
+      }
+
+      .device-ip {
+        font-size: 12px;
+        color: #666;
+        margin-top: 2px;
+      }
+
+      .device-status {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #4caf50;
+      }
     </style>
   </head>
   <body>
@@ -150,6 +197,13 @@
         <div class="metric-row">
           <span class="metric-label">Buffer Size:</span>
           <span class="metric-value" id="bufferMs">-</span>
+        </div>
+      </div>
+
+      <div id="discoverySection">
+        <div class="title" style="font-size: 16px; margin-top: 20px; margin-bottom: 8px;">Discovered Devices</div>
+        <div id="deviceList" class="device-list">
+          <!-- Devices will be added here -->
         </div>
       </div>
     </div>
@@ -219,6 +273,55 @@
       });
 
       updateButtonState(false);
+
+      ipcRenderer.on("device-discovered", (event, device) => {
+        addDeviceToList(device);
+      });
+
+      function addDeviceToList(device) {
+        const list = document.getElementById("deviceList");
+        const cardId = `device-${device.ip.replace(/\./g, '-')}`;
+        let card = document.getElementById(cardId);
+        
+        if (card) {
+            // Update timestamp
+            card.dataset.lastSeen = Date.now();
+            return;
+        }
+
+        card = document.createElement("div");
+        card.className = "device-card";
+        card.id = cardId;
+        card.dataset.lastSeen = Date.now();
+        card.onclick = () => {
+          document.getElementById("serverIP").value = device.ip;
+          connect();
+        };
+
+        card.innerHTML = `
+          <div class="device-info">
+            <span class="device-name">${device.name || "Unknown Device"}</span>
+            <span class="device-ip">${device.ip}</span>
+          </div>
+          <div class="device-status"></div>
+        `;
+        list.appendChild(card);
+      }
+      
+      // Prune stale devices every 2 seconds
+      setInterval(() => {
+          const cards = document.querySelectorAll('.device-card');
+          const now = Date.now();
+          cards.forEach(card => {
+              const lastSeen = parseInt(card.dataset.lastSeen || 0);
+              if (now - lastSeen > 10000) {
+                  card.remove();
+              }
+          });
+      }, 2000);
+
+      // Start discovery when app loads
+      ipcRenderer.send("start-discovery");
     </script>
   </body>
 </html>

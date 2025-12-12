@@ -1,0 +1,140 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    name: Windows Build
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Dependencies
+      working-directory: ./SoundDriftPlayer-app
+      run: npm install
+
+    - name: Build Electron App
+      working-directory: ./SoundDriftPlayer-app
+      run: npm run make
+
+    - name: Upload Windows Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: windows-builds
+        path: |
+          SoundDriftPlayer-app/out/make/squirrel.windows/x64/*.exe
+
+  build-linux:
+    name: Linux Build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Linux Build Dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y rpm libasound2-dev
+
+    - name: Install Dependencies
+      working-directory: ./SoundDriftPlayer-app
+      run: npm install
+
+    - name: Build Electron App
+      working-directory: ./SoundDriftPlayer-app
+      run: npm run make
+
+    - name: Upload Linux Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: linux-builds
+        path: |
+          SoundDriftPlayer-app/out/make/deb/x64/*.deb
+          SoundDriftPlayer-app/out/make/rpm/x64/*.rpm
+          SoundDriftPlayer-app/out/make/zip/linux/x64/*.zip
+
+  build-macos-arm:
+    name: macOS ARM Build
+    runs-on: macos-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Install Dependencies
+      working-directory: ./SoundDriftPlayer-app
+      run: npm install
+
+    - name: Build Electron App for ARM64
+      working-directory: ./SoundDriftPlayer-app
+      run: npm run make -- --arch=arm64
+
+    - name: Upload macOS ARM Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: macos-arm-builds
+        path: |
+          SoundDriftPlayer-app/out/make/*.dmg
+
+  create-release:
+    name: Create Release
+    needs: [build-windows, build-linux, build-macos-arm]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+    - name: Download Windows Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: windows-builds
+        path: ./release-assets/windows
+
+    - name: Download Linux Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: linux-builds
+        path: ./release-assets/linux
+
+    - name: Download macOS ARM Artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: macos-arm-builds
+        path: ./release-assets/macos
+
+    - name: List Release Assets
+      run: find ./release-assets -type f
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          ./release-assets/windows/*.exe
+          ./release-assets/linux/*.deb
+          ./release-assets/linux/*.rpm
+          ./release-assets/linux/*.zip
+          ./release-assets/macos/*.dmg
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

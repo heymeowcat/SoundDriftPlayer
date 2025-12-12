@@ -114,35 +114,28 @@ function connectTCP(serverIP) {
 }
 
 function connectUDP(serverIP) {
-  udpClient = dgram.createSocket("udp4");
+  udpClient = dgram.createSocket({ type: "udp4", reuseAddr: true });
   const audioQueue = []; // Queue to manage incoming audio packets
 
   udpClient.bind(55555, () => {
     console.log("Client bound to port 55555");
 
-    const initialPacket = Buffer.from("SoundDriftConnectionRequest");
-    udpClient.send(initialPacket, 55556, serverIP, (err) => {
-      if (err) {
-        console.error("Error sending first packet:", err);
+    const deviceInfo = {
+      deviceName: require("os").hostname(),
+    };
 
+    const handshakeMessage = `SoundDriftConnectionRequest|${JSON.stringify(deviceInfo)}`;
+    const handshakePacket = Buffer.from(handshakeMessage);
+
+    udpClient.send(handshakePacket, 55556, serverIP, (err) => {
+      if (err) {
+        console.error("Error sending handshake packet:", err);
         handleDisconnect();
       } else {
-        console.log("Initial packet sent to server.");
-
-        const deviceInfo = {
-          deviceName: require("os").hostname(),
-        };
-
-        const deviceInfoPacket = Buffer.from(JSON.stringify(deviceInfo));
-        udpClient.send(deviceInfoPacket, 55556, serverIP, (err) => {
-          if (err) {
-            console.error("Error sending device info JSON packet:", err);
-          } else {
-            console.log(" device info JSON packet sent to server.");
-            isUDPConnected = true;
-            checkConnectionStatus();
-          }
-        });
+        console.log("Handshake packet sent to server.");
+        isUDPConnected = true;
+        checkConnectionStatus();
+        startConnectionMonitor();
       }
     });
     udpClient.on("close", () => {
@@ -157,6 +150,7 @@ function connectUDP(serverIP) {
     }
     audioQueue.push(applyVolume(msg, currentVolume));
     playAudioFromQueue(audioQueue);
+    lastPacketTime = Date.now();
   });
 
   udpClient.on("error", (err) => {
@@ -208,58 +202,194 @@ function checkConnectionStatus() {
 }
 
 function handleDisconnect() {
-  isTCPConnected = false;
-  isUDPConnected = false;
+  return new Promise((resolve) => {
+      isTCPConnected = false;
+      isUDPConnected = false;
 
-  if (tcpClient) {
-    tcpClient.destroy();
-    tcpClient = null;
-  }
-
-  if (udpClient) {
-    const disconnectPacket = Buffer.from("SoundDriftDisconnect");
-    try {
-      if (serverIP) {
-        udpClient.send(disconnectPacket, 55556, serverIP, (err) => {
-          if (err) {
-            console.error("Error sending disconnect packet:", err);
-          } else {
-            console.log("Disconnect packet sent to server.");
-          }
-        });
+      if (tcpClient) {
+        tcpClient.destroy();
+        tcpClient = null;
       }
 
-      udpClient.close(() => {
-        udpClient = null;
-        console.log("UDP socket closed");
-      });
-    } catch (e) {
-      console.error("Error during disconnect:", e);
-    }
-  }
+      let udpClosed = false;
+      const currentUdpClient = udpClient;
+      udpClient = null; // Clear reference immediately to prevent double-close
+      
+      if (currentUdpClient) {
+        const disconnectPacket = Buffer.from("SoundDriftDisconnect");
+        try {
+          if (serverIP) {
+             try {
+                currentUdpClient.send(disconnectPacket, 55556, serverIP, (err) => {
+                    if (err) console.error("Error sending disconnect packet:", err);
+                    else console.log("Disconnect packet sent.");
+                });
+             } catch (e) {
+                 // Ignore send errors if socket is closed
+             }
+          }
 
-  if (audioOutput) {
-    audioOutput.removeAllListeners("error");
-    audioOutput = null;
-  }
+          currentUdpClient.close(() => {
+            console.log("UDP socket closed");
+            if (!udpClosed) {
+                udpClosed = true;
+                resolve();
+            }
+          });
+        } catch (e) {
+          console.error("Error during disconnect:", e);
+          if (!udpClosed) {
+             udpClosed = true;
+             resolve();
+          }
+        }
+      } else {
+          resolve();
+      }
 
-  checkConnectionStatus();
+      if (audioOutput) {
+        audioOutput.removeAllListeners("error");
+        audioOutput = null;
+      }
+
+      checkConnectionStatus();
+      if (connectionMonitorInterval) clearInterval(connectionMonitorInterval);
+  });
 }
 
-ipcMain.on("connect-to-server", (event, serverIPFromRenderer) => {
-  serverIP = serverIPFromRenderer;
-  if (!isTCPConnected && !isUDPConnected) {
-    setupAudioOutput();
-    connectTCP(serverIP);
-    connectUDP(serverIP);
-  } else {
-    console.log("Already connected");
-    mainWindow.webContents.send("connection-status", "Already connected");
-  }
-});
+
 
 ipcMain.on("disconnect", () => {
   handleDisconnect();
+});
+
+let discoveryInterval = null;
+let discoverySocket = null;
+
+const os = require("os");
+
+function getBroadcastAddresses() {
+  const interfaces = os.networkInterfaces();
+  const addresses = [];
+
+  for (const name of Object.keys(interfaces)) {
+    for (const iface of interfaces[name]) {
+      if (iface.family === "IPv4" && !iface.internal) {
+        const ip = iface.address.split(".").map(Number);
+        const netmask = iface.netmask.split(".").map(Number);
+        const broadcast = ip
+          .map((part, i) => part | (~netmask[i] & 255))
+          .join(".");
+        addresses.push(broadcast);
+      }
+    }
+  }
+  
+  if (!addresses.includes("255.255.255.255")) {
+    addresses.push("255.255.255.255");
+  }
+  
+  return addresses;
+}
+
+let connectionMonitorInterval = null;
+let lastPacketTime = 0;
+
+function startConnectionMonitor() {
+    if (connectionMonitorInterval) clearInterval(connectionMonitorInterval);
+    lastPacketTime = Date.now();
+    
+    connectionMonitorInterval = setInterval(() => {
+        if (isUDPConnected && (Date.now() - lastPacketTime > 5000)) {
+            console.log("Connection timed out (no data received for 5s)");
+            handleDisconnect();
+        }
+    }, 1000);
+}
+
+function startDiscovery() {
+  if (discoverySocket) return;
+
+  discoverySocket = dgram.createSocket("udp4");
+
+  discoverySocket.on("error", (err) => {
+    console.error(`Discovery socket error:\n${err.stack}`);
+    if (discoverySocket) {
+        discoverySocket.close();
+        discoverySocket = null;
+    }
+  });
+
+  discoverySocket.on("message", (msg, rinfo) => {
+    console.log(`Discovery received: ${msg} from ${rinfo.address}:${rinfo.port}`);
+    try {
+      // Try to parse as JSON
+      const message = msg.toString();
+      // Check if it's a valid JSON
+      if (message.startsWith("{") && message.endsWith("}")) {
+          const data = JSON.parse(message);
+          // Check for response type or just deviceName
+          if (data.deviceName) {
+             if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send("device-discovered", {
+                    ip: rinfo.address,
+                    name: data.deviceName
+                });
+             }
+          }
+      }
+    } catch (e) {
+       console.error("Error parsing discovery message:", e);
+    }
+  });
+
+  discoverySocket.bind(0, () => {
+    discoverySocket.setBroadcast(true);
+    console.log("Discovery socket bound");
+    
+    const sendProbe = () => {
+        const probe = Buffer.from("SoundDriftDiscovery");
+        const broadcastAddresses = getBroadcastAddresses();
+        
+        broadcastAddresses.forEach(addr => {
+            // Android app is listening on 55558 now
+            discoverySocket.send(probe, 55558, addr, (err) => {
+                if (err) console.error(`Error sending probe to ${addr}:`, err);
+                // else console.log(`Discovery probe sent to ${addr}`);
+            });
+        });
+    };
+
+    sendProbe();
+    // Probe every 3 seconds
+    discoveryInterval = setInterval(sendProbe, 3000);
+  });
+}
+
+ipcMain.on("start-discovery", () => {
+    startDiscovery();
+});
+
+ipcMain.on("connect-to-server", async (event, serverIPFromRenderer) => {
+  console.log("Connect request to:", serverIPFromRenderer);
+  
+  // Always cleanup before connecting to ensure fresh state
+  if (isTCPConnected || isUDPConnected || udpClient || tcpClient) {
+      console.log("Cleaning up previous connection...");
+      await handleDisconnect();
+      // Small safety buffer allowing OS to release port
+      setTimeout(() => {
+          serverIP = serverIPFromRenderer;
+          setupAudioOutput();
+          connectTCP(serverIP);
+          connectUDP(serverIP);
+      }, 100);
+  } else {
+      serverIP = serverIPFromRenderer;
+      setupAudioOutput();
+      connectTCP(serverIP);
+      connectUDP(serverIP);
+  }
 });
 
 // setInterval(() => {
@@ -288,6 +418,8 @@ app.on("activate", () => {
 
 app.on("before-quit", () => {
   handleDisconnect();
+  if (discoveryInterval) clearInterval(discoveryInterval);
+  if (discoverySocket) discoverySocket.close();
   mainWindow = null;
 });
 
