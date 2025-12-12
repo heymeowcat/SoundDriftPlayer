@@ -300,8 +300,8 @@ function startConnectionMonitor() {
     lastPacketTime = Date.now();
     
     connectionMonitorInterval = setInterval(() => {
-        if (isUDPConnected && (Date.now() - lastPacketTime > 5000)) {
-            console.log("Connection timed out (no data received for 5s)");
+        if (isUDPConnected && (Date.now() - lastPacketTime > 8000)) {
+            console.log("Connection timed out (no data received for 8s)");
             handleDisconnect();
         }
     }, 1000);

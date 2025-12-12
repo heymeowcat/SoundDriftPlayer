@@ -60,3 +60,11 @@ This will create platform-specific packages in the  `out`  folder.
 -   `npm start`  - Start the app in development mode
 -   `npm run make`  - Build the app for distribution
 -   `npm run generate-icons`  - Generate app icons
+
+## Troubleshooting
+
+### macOS
+If you see a message saying the app is damaged or cannot be opened, run this command in your terminal:
+```bash
+xattr -cr "/Applications/SoundDrift.app"
+```
