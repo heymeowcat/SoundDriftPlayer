@@ -16,6 +16,7 @@
     "forge": {
       "packagerConfig": {
         "name": "SoundDrift",
+        "executableName": "sounddrift",
         "asar": true,
         "icon": "build/icon"
       },
