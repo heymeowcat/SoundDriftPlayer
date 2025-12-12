@@ -3,7 +3,7 @@
 
 A minimalist desktop client for receiving SoundDrift app's audio streams from Android devices. Built with Electron.
 
-<img width="412" alt="Screenshot 2024-10-27 at 4 05 47 PM" src="https://github.com/user-attachments/assets/47fab888-cc57-4f1c-8556-766bfe79435e">
+<img width="412" height="606" alt="Screenshot 2025-12-12 at 3 03 07 PM" src="https://github.com/user-attachments/assets/4c5807bc-55d5-4eaf-9842-91f553845beb" />
 
 
 ## Usage
